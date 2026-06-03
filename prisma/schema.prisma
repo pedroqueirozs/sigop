@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum StatusObjeto {
+  PERDIDO
+  ENCONTRADO
+  EM_ANALISE
+  AGUARDANDO_VALIDACAO
+  DISPONIVEL_PARA_RETIRADA
+  DEVOLVIDO
+  ENCERRADO
+}
+
+enum StatusSolicitacao {
+  PENDENTE
+  APROVADA
+  REJEITADA
+  CANCELADA
+}
+
+enum ResultadoValidacao {
+  APROVADO
+  REJEITADO
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model TipoUsuario {
+  id               Int       @id @default(autoincrement())
+  descricao        String    @unique @db.VarChar(50)
+  podeValidar      Boolean   @default(false)
+  podeAdministrar  Boolean   @default(false)
+  usuarios         Usuario[]
+
+  @@map("tipo_usuario")
+}
+
+model Usuario {
+  id              Int          @id @default(autoincrement())
+  idTipoUsuario   Int
+  nome            String       @db.VarChar(150)
+  email           String       @unique @db.VarChar(100)
+  cpf             String       @unique @db.Char(11)
+  matricula       String?      @unique @db.VarChar(20)
+  telefone        String?      @db.VarChar(15)
+  senhaHash       String       @db.VarChar(255)
+  ativo           Boolean      @default(true)
+  dataCadastro    DateTime     @default(now())
+
+  tipoUsuario     TipoUsuario  @relation(fields: [idTipoUsuario], references: [id])
+
+  registrosPerdas         RegistroPerda[]
+  registrosEncontrados    RegistroEncontrado[]
+  fotosUpload             FotoObjeto[]
+  solicitacoes            SolicitacaoPosse[]
+  validacoes              Validacao[]
+  devolucoesResponsavel   Devolucao[]       @relation("Responsavel")
+  devolucoesBeneficiario  Devolucao[]       @relation("Beneficiario")
+  notificacoes            Notificacao[]
+  historicos              HistoricoMovimentacao[]
+
+  @@map("usuario")
+}
+
+model Local {
+  id          Int      @id @default(autoincrement())
+  nome        String   @db.VarChar(100)
+  bloco       String?  @db.VarChar(20)
+  andar       String?  @db.VarChar(20)
+  tipoLocal   String   @db.VarChar(50)
+  descricao   String?
+  ativo       Boolean  @default(true)
+
+  registrosPerdas      RegistroPerda[]
+  registrosEncontrados RegistroEncontrado[]
+
+  @@map("local")
+}
+
+model CategoriaObjeto {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique @db.VarChar(80)
+  descricao String?
+  icone     String?  @db.VarChar(50)
+  objetos   Objeto[]
+
+  @@map("categoria_objeto")
+}
+
+model Objeto {
+  id              Int           @id @default(autoincrement())
+  idCategoria     Int
+  descricao       String
+  marca           String?       @db.VarChar(80)
+  cor             String?       @db.VarChar(50)
+  status          StatusObjeto  @default(PERDIDO)
+  dataCriacao     DateTime      @default(now())
+  dataAtualizacao DateTime      @updatedAt
+  observacoes     String?
+
+  categoria       CategoriaObjeto @relation(fields: [idCategoria], references: [id])
+
+  registrosPerdas      RegistroPerda[]
+  registrosEncontrados RegistroEncontrado[]
+  fotos                FotoObjeto[]
+  solicitacoes         SolicitacaoPosse[]
+  devolucao            Devolucao?
+  historicos           HistoricoMovimentacao[]
+  notificacoes         Notificacao[]
+
+  @@map("objeto")
+}
+
+model RegistroPerda {
+  id                      Int       @id @default(autoincrement())
+  idObjeto                Int
+  idUsuario               Int
+  idLocal                 Int
+  dataPerda               DateTime  @db.Date
+  horaPerda               String?   @db.VarChar(5)
+  dataRegistro            DateTime  @default(now())
+  descricaoCircunstancias String?
+
+  objeto   Objeto  @relation(fields: [idObjeto], references: [id])
+  usuario  Usuario @relation(fields: [idUsuario], references: [id])
+  local    Local   @relation(fields: [idLocal], references: [id])
+
+  @@map("registro_perda")
+}
+
+model RegistroEncontrado {
+  id                      Int       @id @default(autoincrement())
+  idObjeto                Int
+  idUsuario               Int
+  idLocal                 Int
+  dataEncontrado          DateTime  @db.Date
+  horaEncontrado          String?   @db.VarChar(5)
+  dataRegistro            DateTime  @default(now())
+  localGuarda             String?   @db.VarChar(150)
+  descricaoCircunstancias String?
+
+  objeto   Objeto  @relation(fields: [idObjeto], references: [id])
+  usuario  Usuario @relation(fields: [idUsuario], references: [id])
+  local    Local   @relation(fields: [idLocal], references: [id])
+
+  @@map("registro_encontrado")
+}
+
+model FotoObjeto {
+  id            Int      @id @default(autoincrement())
+  idObjeto      Int
+  idUsuario     Int
+  urlFoto       String   @db.VarChar(500)
+  nomeArquivo   String   @db.VarChar(200)
+  tamanhoBytes  Int
+  dataUpload    DateTime @default(now())
+  descricao     String?  @db.VarChar(255)
+  isPrincipal   Boolean  @default(false)
+
+  objeto   Objeto  @relation(fields: [idObjeto], references: [id])
+  usuario  Usuario @relation(fields: [idUsuario], references: [id])
+
+  @@map("foto_objeto")
+}
+
+model SolicitacaoPosse {
+  id                     Int               @id @default(autoincrement())
+  idObjeto               Int
+  idSolicitante          Int
+  statusSolicitacao      StatusSolicitacao @default(PENDENTE)
+  descricaoReivindicacao String
+  dataSolicitacao        DateTime          @default(now())
+  dataAtualizacao        DateTime          @updatedAt
+
+  objeto      Objeto  @relation(fields: [idObjeto], references: [id])
+  solicitante Usuario @relation(fields: [idSolicitante], references: [id])
+
+  evidencias Evidencia[]
+  validacao  Validacao?
+  devolucao  Devolucao?
+
+  @@map("solicitacao_posse")
+}
+
+model Evidencia {
+  id             Int      @id @default(autoincrement())
+  idSolicitacao  Int
+  tipoEvidencia  String   @db.VarChar(80)
+  descricao      String?
+  urlArquivo     String?  @db.VarChar(500)
+  dataUpload     DateTime @default(now())
+
+  solicitacao SolicitacaoPosse @relation(fields: [idSolicitacao], references: [id])
+
+  @@map("evidencia")
+}
+
+model Validacao {
+  id             Int                @id @default(autoincrement())
+  idSolicitacao  Int                @unique
+  idValidador    Int
+  resultado      ResultadoValidacao
+  justificativa  String?
+  dataValidacao  DateTime           @default(now())
+
+  solicitacao SolicitacaoPosse @relation(fields: [idSolicitacao], references: [id])
+  validador   Usuario          @relation(fields: [idValidador], references: [id])
+
+  @@map("validacao")
+}
+
+model Devolucao {
+  id                Int      @id @default(autoincrement())
+  idObjeto          Int      @unique
+  idSolicitacao     Int      @unique
+  idResponsavel     Int
+  idBeneficiario    Int
+  dataDevolucao     DateTime @default(now())
+  codigoComprovante String   @unique @db.VarChar(50)
+  observacoes       String?
+
+  objeto       Objeto           @relation(fields: [idObjeto], references: [id])
+  solicitacao  SolicitacaoPosse @relation(fields: [idSolicitacao], references: [id])
+  responsavel  Usuario          @relation("Responsavel", fields: [idResponsavel], references: [id])
+  beneficiario Usuario          @relation("Beneficiario", fields: [idBeneficiario], references: [id])
+
+  @@map("devolucao")
+}
+
+model Notificacao {
+  id                Int       @id @default(autoincrement())
+  idUsuarioDestino  Int
+  idObjeto          Int?
+  tipoNotificacao   String    @db.VarChar(80)
+  mensagem          String
+  lida              Boolean   @default(false)
+  dataCriacao       DateTime  @default(now())
+  dataLeitura       DateTime?
+
+  usuarioDestino Usuario  @relation(fields: [idUsuarioDestino], references: [id])
+  objeto         Objeto?  @relation(fields: [idObjeto], references: [id])
+
+  @@map("notificacao")
+}
+
+model HistoricoMovimentacao {
+  id               Int      @id @default(autoincrement())
+  idObjeto         Int
+  idUsuario        Int
+  statusAnterior   String?  @db.VarChar(50)
+  statusNovo       String   @db.VarChar(50)
+  acao             String   @db.VarChar(100)
+  detalhes         String?
+  dataMovimentacao DateTime @default(now())
+
+  objeto  Objeto  @relation(fields: [idObjeto], references: [id])
+  usuario Usuario @relation(fields: [idUsuario], references: [id])
+
+  @@map("historico_movimentacao")
+}

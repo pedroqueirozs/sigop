@@ -8,6 +8,9 @@ Projeto Final de Modelagem Conceitual de Banco de Dados para disciplina universi
 Sistema web para controle de objetos perdidos/encontrados em uma faculdade.
 
 **Stack:** Next.js 16.2.7 · React 19 · TypeScript · Tailwind CSS v4 · App Router
+**Banco:** PostgreSQL via Neon — nunca SQLite (filesystem efêmero no Vercel/Render)
+**Deploy:** Vercel (app) + Neon (banco) — planos gratuitos, link público para o professor
+**Fotos:** Cloudinary ou Vercel Blob (só a URL é salva no banco)
 
 ## Estrutura de Documentação
 
