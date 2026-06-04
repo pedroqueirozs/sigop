@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { prisma } from "@/app/lib/db"
+import PrintButton from "./print-button"
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -77,12 +78,7 @@ export default async function ComprovantePage({ params }: Props) {
       </div>
 
       <div className="mt-6 flex gap-3">
-        <button
-          onClick={() => window.print()}
-          className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-        >
-          🖨️ Imprimir
-        </button>
+        <PrintButton />
         <Link
           href="/"
           className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
