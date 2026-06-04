@@ -1,8 +1,16 @@
 "use server"
 import { redirect } from "next/navigation"
 import { z } from "zod"
+import { put } from "@vercel/blob"
 import { prisma } from "@/app/lib/db"
 import { getSession } from "@/app/lib/session"
+
+async function uploadFoto(file: File, objetoId: number): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg"
+  const filename = `objetos/${objetoId}/${Date.now()}.${ext}`
+  const blob = await put(filename, file, { access: "public" })
+  return blob.url
+}
 
 const RegistroPerdaSchema = z.object({
   descricao:               z.string().min(5, { message: "Descreva o objeto com pelo menos 5 caracteres" }).trim(),
@@ -157,6 +165,27 @@ export async function registrarEncontrado(
       detalhes:      descricaoCircunstancias || null,
     },
   })
+
+  // Upload de fotos (se houver token configurado)
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const fotos = formData.getAll("fotos") as File[]
+    const fotosValidas = fotos.filter((f) => f instanceof File && f.size > 0)
+
+    for (let i = 0; i < fotosValidas.length; i++) {
+      const foto = fotosValidas[i]
+      const url = await uploadFoto(foto, objeto.id)
+      await prisma.fotoObjeto.create({
+        data: {
+          idObjeto:     objeto.id,
+          idUsuario:    session.userId,
+          urlFoto:      url,
+          nomeArquivo:  foto.name,
+          tamanhoBytes: foto.size,
+          isPrincipal:  i === 0,
+        },
+      })
+    }
+  }
 
   redirect(`/objetos/${objeto.id}`)
 }

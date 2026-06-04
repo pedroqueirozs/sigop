@@ -1,5 +1,5 @@
 "use client"
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 import Link from "next/link"
 import { registrarEncontrado } from "@/app/actions/objeto"
 
@@ -11,9 +11,15 @@ type Option = { id: number; nome: string }
 
 export default function EncontradoForm({ categorias, locais }: { categorias: Option[]; locais: Option[] }) {
   const [state, action, pending] = useActionState(registrarEncontrado, undefined)
+  const [previews, setPreviews] = useState<string[]>([])
+
+  function handleFotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    setPreviews(files.map((f) => URL.createObjectURL(f)))
+  }
 
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form action={action} className="flex flex-col gap-5" encType="multipart/form-data">
       <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700 ring-1 ring-amber-200">
         Ao registrar um objeto encontrado, o sistema notificará automaticamente possíveis proprietários.
       </div>
@@ -108,6 +114,46 @@ export default function EncontradoForm({ categorias, locais }: { categorias: Opt
       <div className="flex flex-col gap-1">
         <label htmlFor="observacoes" className={LABEL}>Observações adicionais</label>
         <textarea id="observacoes" name="observacoes" rows={2} placeholder="Opcional" className={INPUT} />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className={LABEL}>
+          Fotos do objeto
+          <span className="ml-1 text-xs font-normal text-gray-400">(recomendado — ajuda o dono a identificar)</span>
+        </label>
+        <label
+          htmlFor="fotos"
+          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-4 py-6 text-center transition hover:border-blue-400 hover:bg-blue-50/30"
+        >
+          <span className="text-2xl">📷</span>
+          <span className="text-sm text-gray-500">Clique para selecionar fotos</span>
+          <span className="text-xs text-gray-400">JPG ou PNG · máx. 5 MB cada</span>
+          <input
+            id="fotos"
+            name="fotos"
+            type="file"
+            accept="image/jpeg,image/png"
+            multiple
+            className="hidden"
+            onChange={handleFotos}
+          />
+        </label>
+
+        {previews.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {previews.map((src, i) => (
+              <div key={i} className="relative h-20 w-20 overflow-hidden rounded-lg ring-1 ring-gray-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt={`Foto ${i + 1}`} className="h-full w-full object-cover" />
+                {i === 0 && (
+                  <span className="absolute bottom-0 left-0 right-0 bg-blue-600/80 py-0.5 text-center text-[10px] text-white">
+                    principal
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {state?.message && (

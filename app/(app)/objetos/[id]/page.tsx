@@ -88,9 +88,18 @@ export default async function ObjetoDetalhe({ params }: Props) {
             <h1 className="mt-2 text-lg font-bold text-gray-900 line-clamp-2">{objeto.descricao}</h1>
             <p className="mt-1 text-sm text-gray-500">{objeto.categoria.nome}</p>
           </div>
-          <div className="ml-4 flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-3xl">
-            📦
-          </div>
+          {objeto.fotos[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={objeto.fotos[0].urlFoto}
+              alt="Foto do objeto"
+              className="ml-4 h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-gray-200"
+            />
+          ) : (
+            <div className="ml-4 flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-3xl">
+              📦
+            </div>
+          )}
         </div>
 
         {/* Detalhes */}
@@ -135,6 +144,25 @@ export default async function ObjetoDetalhe({ params }: Props) {
           )}
         </div>
 
+        {/* Galeria de fotos */}
+        {objeto.fotos.length > 0 && (
+          <div className="border-t border-gray-100 px-6 py-4">
+            <p className="mb-2 text-xs text-gray-400">Fotos ({objeto.fotos.length})</p>
+            <div className="flex flex-wrap gap-2">
+              {objeto.fotos.map((foto) => (
+                <a key={foto.id} href={foto.urlFoto} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={foto.urlFoto}
+                    alt={foto.descricao ?? "Foto do objeto"}
+                    className="h-24 w-24 rounded-lg object-cover ring-1 ring-gray-200 transition hover:ring-blue-400"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Observações */}
         {objeto.observacoes && (
           <div className="border-t border-gray-100 px-6 py-4">
@@ -162,7 +190,25 @@ export default async function ObjetoDetalhe({ params }: Props) {
         {minhaSolicitacao && (
           <div className="border-t border-gray-100 bg-yellow-50 px-6 py-4">
             <p className="text-sm font-medium text-yellow-900">
-              Sua solicitação está {minhaSolicitacao.statusSolicitacao === "PENDENTE" ? "em análise" : minhaSolicitacao.statusSolicitacao.toLowerCase()}.
+              Sua solicitação está{" "}
+              {minhaSolicitacao.statusSolicitacao === "PENDENTE"
+                ? "em análise"
+                : minhaSolicitacao.statusSolicitacao === "APROVADA"
+                ? "aprovada — aguarde a retirada"
+                : minhaSolicitacao.statusSolicitacao.toLowerCase()}
+              .
+            </p>
+          </div>
+        )}
+
+        {objeto.status === "ENCONTRADO" &&
+          !podeReivindicar &&
+          !minhaSolicitacao &&
+          session?.userId === registroEnc?.idUsuario && (
+          <div className="border-t border-gray-100 bg-gray-50 px-6 py-4">
+            <p className="text-xs text-gray-400">
+              Você registrou este objeto. Outro usuário pode reivindicá-lo em{" "}
+              <span className="font-medium">/objetos/{objeto.id}</span>.
             </p>
           </div>
         )}
