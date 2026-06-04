@@ -11,15 +11,19 @@ export default function ValidacaoForm({ idSolicitacao }: { idSolicitacao: number
     <form action={action} className="flex flex-col gap-4">
       <input type="hidden" name="idSolicitacao" value={idSolicitacao} />
 
+      <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200">
+        O solicitante deve estar presente e apresentar documento de identificação para confirmar a retirada.
+      </div>
+
       <div className="flex flex-col gap-1">
         <label htmlFor="justificativa" className="text-sm font-medium text-gray-700">
-          Justificativa <span className="text-xs text-gray-400">(obrigatória em caso de rejeição)</span>
+          Observações <span className="text-xs font-normal text-gray-400">(obrigatório ao rejeitar)</span>
         </label>
         <textarea
           id="justificativa"
           name="justificativa"
-          rows={3}
-          placeholder="Descreva o motivo da sua decisão..."
+          rows={2}
+          placeholder="Ex: Solicitante apresentou RG e confirmou características do objeto. / Solicitante não compareceu..."
           className={INPUT}
         />
         {state?.errors?.justificativa && (
@@ -39,7 +43,7 @@ export default function ValidacaoForm({ idSolicitacao }: { idSolicitacao: number
           disabled={pending}
           className="flex-1 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
         >
-          {pending ? "Processando..." : "❌ Rejeitar"}
+          {pending ? "Processando..." : "Negar retirada"}
         </button>
         <button
           type="submit"
@@ -48,7 +52,7 @@ export default function ValidacaoForm({ idSolicitacao }: { idSolicitacao: number
           disabled={pending}
           className="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
         >
-          {pending ? "Processando..." : "✅ Aprovar"}
+          {pending ? "Processando..." : "✅ Confirmar e gerar recibo"}
         </button>
       </div>
     </form>
