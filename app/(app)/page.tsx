@@ -70,34 +70,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Ações rápidas */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Link
-          href="/registrar/perda"
-          className="flex items-center gap-3 rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 transition hover:ring-blue-400"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-xl">
-            📋
-          </div>
-          <div>
-            <p className="font-semibold text-gray-900">Registrar perda</p>
-            <p className="text-xs text-gray-500">Perdi um objeto no campus</p>
-          </div>
-        </Link>
-        <Link
-          href="/registrar/encontrado"
-          className="flex items-center gap-3 rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 transition hover:ring-blue-400"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-xl">
-            📦
-          </div>
-          <div>
-            <p className="font-semibold text-gray-900">Registrar encontrado</p>
-            <p className="text-xs text-gray-500">Encontrei um objeto no campus</p>
-          </div>
-        </Link>
-      </div>
-
       {/* Objetos recentes */}
       <div>
         <div className="mb-3 flex items-center justify-between">
