@@ -1,16 +1,21 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { prisma } from "@/app/lib/db"
+import { encerrarRegistroPerda } from "@/app/actions/solicitacao"
 import PrintButton from "./print-button"
 
-type Props = { params: Promise<{ id: string }> }
+type Props = {
+  params:      Promise<{ id: string }>
+  searchParams: Promise<{ vinculado?: string }>
+}
 
 function mascaraCpf(cpf: string) {
   return `***.***.${cpf.slice(6, 9)}-**`
 }
 
-export default async function ComprovantePage({ params }: Props) {
-  const { id } = await params
+export default async function ComprovantePage({ params, searchParams }: Props) {
+  const { id }       = await params
+  const { vinculado } = await searchParams
 
   const devolucao = await prisma.devolucao.findUnique({
     where: { id: Number(id) },
@@ -28,6 +33,14 @@ export default async function ComprovantePage({ params }: Props) {
   })
 
   if (!devolucao) notFound()
+
+  const objetosPerdidos = await prisma.objeto.findMany({
+    where: {
+      status: "PERDIDO",
+      registrosPerdas: { some: { idUsuario: devolucao.idBeneficiario } },
+    },
+    select: { id: true, descricao: true, categoria: { select: { nome: true } } },
+  })
 
   const foto       = devolucao.objeto.fotos[0]
   const localEnc   = devolucao.objeto.registrosEncontrados[0]?.local?.nome ?? "—"
@@ -172,6 +185,62 @@ export default async function ComprovantePage({ params }: Props) {
       <p className="mt-4 text-center text-sm text-gray-500 print:hidden">
         Imprima este recibo, solicite a assinatura e arquive uma via.
       </p>
+
+      {/* ─── Registros de perda pendentes ─────────────────────────────────── */}
+      <div className="mt-6 rounded-xl bg-white p-5 ring-1 ring-gray-200 print:hidden">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+          Registros de perda pendentes — {devolucao.beneficiario.nome}
+        </p>
+
+        {vinculado === "1" ? (
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700 ring-1 ring-green-200">
+            <span>✓</span>
+            <span>Registro de perda encerrado com sucesso.</span>
+          </div>
+        ) : objetosPerdidos.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-400">
+            Nenhum registro de perda pendente para este usuário.
+          </p>
+        ) : (
+          <div className="mt-3">
+            <p className="mb-4 text-sm text-gray-600">
+              {devolucao.beneficiario.nome.split(" ")[0]} possui{" "}
+              <strong>{objetosPerdidos.length}</strong>{" "}
+              registro{objetosPerdidos.length > 1 ? "s" : ""} de perda em aberto.
+              Selecione o correspondente para encerrar.
+            </p>
+            <form action={encerrarRegistroPerda}>
+              <input type="hidden" name="devolucaoId" value={devolucao.id} />
+              <div className="space-y-2">
+                {objetosPerdidos.map((obj) => (
+                  <label
+                    key={obj.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50"
+                  >
+                    <input
+                      type="radio"
+                      name="objetoPerdidoId"
+                      value={obj.id}
+                      required
+                      className="accent-blue-600"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{obj.descricao}</p>
+                      <p className="text-xs text-gray-400">{obj.categoria.nome}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <button
+                type="submit"
+                className="mt-4 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+              >
+                Encerrar registro de perda
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

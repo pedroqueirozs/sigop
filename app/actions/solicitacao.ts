@@ -259,3 +259,57 @@ export async function registrarDevolucao(
 
   redirect(`/comprovante/${devolucao.id}`)
 }
+
+// ─── Encerrar registro de perda vinculado ─────────────────────────────────────
+
+export async function encerrarRegistroPerda(formData: FormData) {
+  const session = await getSession()
+  if (!session?.podeValidar) redirect("/")
+
+  const devolucaoId    = Number(formData.get("devolucaoId"))
+  const objetoPerdidoId = Number(formData.get("objetoPerdidoId"))
+
+  if (!devolucaoId || !objetoPerdidoId) redirect(`/comprovante/${devolucaoId}`)
+
+  const devolucao = await prisma.devolucao.findUnique({
+    where: { id: devolucaoId },
+    select: { idBeneficiario: true },
+  })
+  if (!devolucao) redirect("/")
+
+  const objeto = await prisma.objeto.findFirst({
+    where: {
+      id:     objetoPerdidoId,
+      status: "PERDIDO",
+      registrosPerdas: { some: { idUsuario: devolucao.idBeneficiario } },
+    },
+  })
+  if (!objeto) redirect(`/comprovante/${devolucaoId}`)
+
+  await prisma.objeto.update({
+    where: { id: objetoPerdidoId },
+    data:  { status: "ENCERRADO" },
+  })
+
+  await prisma.historicoMovimentacao.create({
+    data: {
+      idObjeto:       objetoPerdidoId,
+      idUsuario:      session.userId,
+      statusAnterior: "PERDIDO",
+      statusNovo:     "ENCERRADO",
+      acao:           "Registro de perda encerrado após devolução",
+      detalhes:       `Vinculado à devolução ID ${devolucaoId}`,
+    },
+  })
+
+  await prisma.notificacao.create({
+    data: {
+      idUsuarioDestino: devolucao.idBeneficiario,
+      idObjeto:         objetoPerdidoId,
+      tipoNotificacao:  "Objeto Encerrado",
+      mensagem:         "Seu registro de perda foi encerrado — o objeto foi retirado no setor de Achados e Perdidos.",
+    },
+  })
+
+  redirect(`/comprovante/${devolucaoId}?vinculado=1`)
+}
